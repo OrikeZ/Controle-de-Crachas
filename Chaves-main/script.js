@@ -8,6 +8,53 @@ const storageKeys = {
 
 const API_REGISTROS = () => apiUrl('/api/registros');
 
+const TIPOS_CRACHA = [
+  { id: 'provisorio', label: 'Crachá Provisório', palavra: 'provisorio' },
+  { id: 'visitante', label: 'Crachá Visitante', palavra: 'visitante' },
+  { id: 'terceiros', label: 'Crachá Terceiros', palavra: 'terceiro' }
+];
+
+function normalizarTexto(texto) {
+  return (texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function obterTipoPorNumero(numero) {
+  const normalizado = normalizarTexto(numero);
+  const tipo = TIPOS_CRACHA.find((t) => normalizado.includes(t.palavra));
+  return tipo ? tipo.id : null;
+}
+
+function crachaPertenceAoTipo(numero, tipoId) {
+  return obterTipoPorNumero(numero) === tipoId;
+}
+
+function labelTipo(id) {
+  return TIPOS_CRACHA.find((t) => t.id === id)?.label || '—';
+}
+
+function textoBadgeTipo(tipoId) {
+  return labelTipo(tipoId).replace(/^Crachá\s+/i, '');
+}
+
+function criarBadgeTipo(tipoId) {
+  const span = document.createElement('span');
+  span.className = tipoId ? `badge-tipo badge-tipo--${tipoId}` : 'badge-tipo';
+  span.textContent = textoBadgeTipo(tipoId);
+  return span;
+}
+
+function obterTipoRegistro(registro) {
+  return registro.tipo || obterTipoPorNumero(registro.chave);
+}
+
+function obterTipoSelecionado() {
+  const selecionado = document.querySelector('input[name="tipo-cracha"]:checked');
+  return selecionado ? selecionado.value : null;
+}
+
 const registrosPorPagina = 20;
 let paginaAtual = 1;
 let totalPaginas = 1;
@@ -79,7 +126,7 @@ async function migrarRegistrosDoLocalStorage() {
   for (const registro of antigos) {
     await fetch(API_REGISTROS(), {
       method: 'POST',
-      headers: headersAutenticados({ 'Content-Type': 'application/json' }),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         pessoa: registro.pessoa,
         chave: registro.chave,
@@ -96,41 +143,25 @@ async function migrarRegistrosDoLocalStorage() {
 }
 
 async function criarRegistro(dados) {
-  if (!estaAutenticado()) {
-    throw new Error('Faça login para registrar retirada ou devolução.');
-  }
-
   const resposta = await fetch(API_REGISTROS(), {
     method: 'POST',
-    headers: headersAutenticados({ 'Content-Type': 'application/json' }),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dados)
   });
 
   const corpo = await resposta.json().catch(() => ({}));
-  if (resposta.status === 401) {
-    encerrarSessao();
-    throw new Error(corpo.erro || 'Sessão expirada. Faça login novamente.');
-  }
   if (!resposta.ok) throw new Error(corpo.erro || 'Falha ao salvar registro');
   return corpo;
 }
 
 async function atualizarRegistro(id, dados) {
-  if (!estaAutenticado()) {
-    throw new Error('Faça login para registrar devolução.');
-  }
-
   const resposta = await fetch(`${API_REGISTROS()}/${id}`, {
     method: 'PATCH',
-    headers: headersAutenticados({ 'Content-Type': 'application/json' }),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(dados)
   });
 
   const corpo = await resposta.json().catch(() => ({}));
-  if (resposta.status === 401) {
-    encerrarSessao();
-    throw new Error(corpo.erro || 'Sessão expirada. Faça login novamente.');
-  }
   if (!resposta.ok) throw new Error(corpo.erro || 'Falha ao atualizar registro');
   return corpo;
 }
@@ -140,24 +171,35 @@ async function atualizarRegistro(id, dados) {
 // Preencher select de crachás cadastrados (disponíveis para retirada)
 function preencherSelectChave() {
   if (!selectChave) return;
+
+  const tipoSelecionado = obterTipoSelecionado();
+
+  if (!tipoSelecionado) {
+    selectChave.innerHTML = '<option value="">Selecione o tipo de crachá primeiro</option>';
+    selectChave.disabled = true;
+    return;
+  }
+
+  selectChave.disabled = false;
   selectChave.innerHTML = '<option value="">Selecione o crachá</option>';
 
-  const chavesDisponiveis = chaves.filter(chaveObj =>
-    !registros.some(r => r.chave === chaveObj.numero && !r.devolvido)
+  const chavesDisponiveis = chaves.filter((chaveObj) =>
+    crachaPertenceAoTipo(chaveObj.numero, tipoSelecionado) &&
+    !registros.some((r) => r.chave === chaveObj.numero && !r.devolvido)
   );
 
   if (chavesDisponiveis.length === 0) {
     const option = document.createElement('option');
     option.value = '';
-    option.textContent = chaves.length === 0
-      ? 'Nenhum crachá cadastrado'
-      : 'Nenhum crachá disponível';
+    option.textContent = chaves.some((c) => crachaPertenceAoTipo(c.numero, tipoSelecionado))
+      ? 'Nenhum crachá disponível deste tipo'
+      : 'Nenhum crachá cadastrado deste tipo';
     option.disabled = true;
     selectChave.appendChild(option);
     return;
   }
 
-  chavesDisponiveis.forEach(c => {
+  chavesDisponiveis.forEach((c) => {
     const option = document.createElement('option');
     option.value = c.numero;
     const local = c.local && c.local !== '-' ? ` (${c.local})` : '';
@@ -181,7 +223,15 @@ function atualizarListaRetiradas() {
 
  abertos.forEach((r) => {
   const li = document.createElement('li');
-  li.textContent = `${r.chave} — ${r.pessoa} — Retirada: ${new Date(r.retirada).toLocaleString()}`;
+
+  const info = document.createElement('span');
+  info.className = 'retirada-info';
+  info.appendChild(criarBadgeTipo(obterTipoRegistro(r)));
+  info.appendChild(document.createTextNode(' '));
+  const detalhe = document.createElement('span');
+  detalhe.innerHTML = `<strong>${r.chave}</strong> — ${r.pessoa}<br><small>Retirada: ${new Date(r.retirada).toLocaleString()}</small>`;
+  info.appendChild(detalhe);
+  li.appendChild(info);
 
   const btnDevolver = document.createElement('button');
   btnDevolver.textContent = 'Devolver';
@@ -195,13 +245,8 @@ function atualizarListaRetiradas() {
       r.devolvido = devolvido;
     } catch (erro) {
       alert(erro.message || 'Erro ao registrar a devolução. Verifique se o servidor está rodando.');
-      if ((erro.message || '').includes('login')) {
-        window.location.href = 'login.html';
-      }
       return;
     }
-
-    imprimirTicket('devolução', r);
 
     preencherSelectChave();
     atualizarListaRetiradas();
@@ -382,16 +427,16 @@ formChave?.addEventListener('submit', async (e) => {
 formRegistro?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  if (!estaAutenticado()) {
-    alert('Faça login para registrar retirada.');
-    window.location.href = 'login.html?redirect=index.html';
-    return;
-  }
-
   await carregarChaves();
 
   const pessoaNome = inputNomeRetirada?.value.trim() || '';
   const chaveNumero = selectChave.value;
+  const tipoCracha = obterTipoSelecionado();
+
+  if (!tipoCracha) {
+    alert('Selecione o tipo de crachá.');
+    return;
+  }
 
   if (!pessoaNome || !chaveNumero) {
     alert('Selecione o crachá e informe o nome de quem retira.');
@@ -404,6 +449,11 @@ formRegistro?.addEventListener('submit', async (e) => {
     return;
   }
 
+  if (!crachaPertenceAoTipo(chaveNumero, tipoCracha)) {
+    alert('O crachá selecionado não corresponde ao tipo escolhido.');
+    return;
+  }
+
   if (registros.some(r => r.chave === chaveNumero && !r.devolvido)) {
     alert('Este crachá já está retirado.');
     return;
@@ -413,27 +463,32 @@ formRegistro?.addEventListener('submit', async (e) => {
     const novo = await criarRegistro({
       pessoa: pessoaNome,
       chave: chaveNumero,
+      tipo: tipoCracha,
       retirada: new Date().toISOString(),
       devolvido: null
     });
     registros.push(novo);
   } catch (erro) {
     alert(erro.message || 'Erro ao registrar a retirada. Verifique se o servidor está rodando.');
-    if ((erro.message || '').includes('login')) {
-      window.location.href = 'login.html';
-    }
     return;
   }
 
   preencherSelectChave();
   atualizarListaRetiradas();
-  imprimirTicket('retirada', registros[registros.length - 1]);
   formRegistro.reset();
+  preencherSelectChave();
 });
 
 // --- Inicialização ---
 
 function initIndex() {
+  document.querySelectorAll('input[name="tipo-cracha"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      preencherSelectChave();
+      if (selectChave) selectChave.value = '';
+    });
+  });
+
   preencherSelectChave();
   atualizarListaRetiradas();
 }
@@ -445,89 +500,10 @@ function initCadastro() {
 
 }
 
-function imprimirTicket(tipo, registro) {
-  const chaveObj = chaves.find(c => c.numero === registro.chave);
-  const pessoa = registro.pessoa;
-  const dataHora = tipo === 'retirada' ? new Date(registro.retirada) : new Date(registro.devolvido);
-
-  const html = `
-    <html>
-      <head>
-        <title>Ticket de ${tipo}</title>
-        <style>
-          body {
-            font-family: monospace;
-            padding: 10px;
-            width: 300px;
-            margin: 0;
-            font-size: 18px;
-          }
-          h2 {
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 22px;
-          }
-          p {
-            margin: 6px 0;
-            font-size: 18px;
-          }
-          .linha {
-            border-top: 1px dashed #000;
-            margin: 10px 0;
-          }
-          .assinatura {
-            margin-top: 40px;
-            font-size: 18px;
-          }
-          @media print {
-            body {
-              width: 300px;
-              margin: 0;
-              padding: 10px;
-              font-size: 18px;
-            }
-            button {
-              display: none;
-            }
-            @page {
-              size: auto;
-              margin: 0;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <h2>Controle de Chaves</h2>
-        <p><strong>${tipo === 'retirada' ? 'Retirada' : 'Devolução'}</strong></p>
-        <p><strong>Pessoa:</strong> ${pessoa}</p>
-        <p><strong>Data/Hora:</strong> ${dataHora.toLocaleString()}</p>
-        <p><strong>Chave:</strong> ${registro.chave}</p>
-        <p><strong>Local:</strong> ${chaveObj?.local || '-'}</p>
-        <div class="linha"></div>
-        <p class="assinatura">Assinatura: ___________________________</p>
-      </body>
-    </html>
-  `;
-
-  const printWindow = window.open('', '_blank', 'width=350,height=400');
-  if (!printWindow) {
-    alert('Por favor, permita popups para imprimir o ticket.');
-    return;
-  }
-  printWindow.document.write(html);
-  printWindow.document.close();
-
-  printWindow.focus();
-
-  printWindow.onload = () => {
-    printWindow.print();
-    printWindow.close();
-  };
-}
-
 function preencherTabelaRegistros() {
   const tabela = document.getElementById('tabela-registros').querySelector('tbody');
   const filtroPessoa = document.getElementById('filtro-pessoa');
+  const filtroTipo = document.getElementById('filtro-tipo');
   const filtroChave = document.getElementById('filtro-chave');
 
   if (!tabela) return;
@@ -540,6 +516,11 @@ function preencherTabelaRegistros() {
   if (filtroPessoa && filtroPessoa.value) {
     registrosFiltrados = registrosFiltrados.filter(r => r.pessoa === filtroPessoa.value);
   }
+  if (filtroTipo && filtroTipo.value) {
+    registrosFiltrados = registrosFiltrados.filter(
+      (r) => obterTipoRegistro(r) === filtroTipo.value
+    );
+  }
   if (filtroChave && filtroChave.value) {
     registrosFiltrados = registrosFiltrados.filter(r => r.chave === filtroChave.value);
   }
@@ -547,7 +528,7 @@ function preencherTabelaRegistros() {
   if (registrosFiltrados.length === 0) {
     const row = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 4;
+    td.colSpan = 5;
     td.textContent = 'Nenhum registro encontrado.';
     row.appendChild(td);
     tabela.appendChild(row);
@@ -560,6 +541,10 @@ function preencherTabelaRegistros() {
     const tdPessoa = document.createElement('td');
     tdPessoa.textContent = registro.pessoa;
     tr.appendChild(tdPessoa);
+
+    const tdTipo = document.createElement('td');
+    tdTipo.appendChild(criarBadgeTipo(obterTipoRegistro(registro)));
+    tr.appendChild(tdTipo);
 
     const tdChave = document.createElement('td');
     tdChave.textContent = registro.chave;
@@ -580,6 +565,7 @@ function preencherTabelaRegistros() {
 }
 function initRegistros() {
   const filtroPessoa = document.getElementById('filtro-pessoa');
+  const filtroTipo = document.getElementById('filtro-tipo');
   const filtroChave = document.getElementById('filtro-chave');
 
   // Preenche opções dos filtros
@@ -599,6 +585,7 @@ function initRegistros() {
 
   // Eventos para filtros
   filtroPessoa?.addEventListener('change', preencherTabelaRegistros);
+  filtroTipo?.addEventListener('change', preencherTabelaRegistros);
   filtroChave?.addEventListener('change', preencherTabelaRegistros);
 
   preencherTabelaRegistros();

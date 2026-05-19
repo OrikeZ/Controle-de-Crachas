@@ -8,7 +8,7 @@
 
 </head>
 
-<body>
+<body class="pagina-cadastro">
   <script src="config.js"></script>
   <script src="api.js"></script>
   <script src="auth.js"></script>
@@ -20,7 +20,7 @@
 <header>
   <div class="header-content">
     <div class="header-title">
-      <h1>Controle de Chaves</h1>
+      <h1>Controle de Crachás</h1>
     </div>
 
     <nav>
@@ -35,7 +35,7 @@
   </div>
 </header>
 
-  <h1>CONTROLE DE CRACHÁS</h1>
+  <h1 class="titulo-pagina">Cadastro de crachás</h1>
 
   <!-- Cadastro de Setores
   <section>
@@ -82,23 +82,24 @@
   <section>
     <h2>Cadastrar Crachá</h2>
     <form id="form-chave">
-      <label for="numero-chave">Número do crachá:</label>
-      <input type="text" id="numero-chave" name="numero-chave" required />
-
-
-
-      <button type="submit">Adicionar Crachá</button>
+      <div class="campo-form">
+        <label for="numero-chave">Número do crachá</label>
+        <input type="text" id="numero-chave" name="numero-chave" placeholder="Ex.: Provisório 1, Visitante 2" required />
+      </div>
+      <button type="submit">Adicionar crachá</button>
     </form>
   </section>
 
   <section>
     <h2>Excluir Crachá</h2>
     <form id="form-excluir-chave">
-      <label for="select-chave-excluir">Crachá cadastrado:</label>
-      <select id="select-chave-excluir" required>
-        <option value="">Carregando...</option>
-      </select>
-      <button type="submit" class="btn-excluir">Excluir Crachá</button>
+      <div class="campo-form">
+        <label for="select-chave-excluir">Crachá cadastrado</label>
+        <select id="select-chave-excluir" required>
+          <option value="">Carregando...</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-excluir">Excluir crachá</button>
     </form>
   </section>
 <!-- 

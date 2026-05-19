@@ -154,13 +154,10 @@ async function tratarApi(req, res, url) {
     }
 
     if (metodo === 'POST') {
-      const auth = requerAutenticacao(req);
-      if (!auth.ok) return enviarJson(res, auth.status, { erro: auth.erro });
-
       const corpo = await lerCorpo(req);
       if (corpo === null) return enviarJson(res, 400, { erro: 'JSON inválido.' });
 
-      const { pessoa, chave, retirada, devolvido } = corpo;
+      const { pessoa, chave, retirada, devolvido, tipo } = corpo;
       if (!pessoa || !chave || !retirada) {
         return enviarJson(res, 400, { erro: 'Dados incompletos para o registro.' });
       }
@@ -172,7 +169,8 @@ async function tratarApi(req, res, url) {
           pessoa,
           chave,
           retirada,
-          devolvido: devolvido ?? null
+          devolvido: devolvido ?? null,
+          ...(tipo ? { tipo } : {})
         };
         registros.push(novo);
         await repoRegistros.gravar(registros);
@@ -185,9 +183,6 @@ async function tratarApi(req, res, url) {
 
   const matchRegistro = caminho.match(/^\/api\/registros\/(\d+)$/);
   if (matchRegistro && metodo === 'PATCH') {
-    const auth = requerAutenticacao(req);
-    if (!auth.ok) return enviarJson(res, auth.status, { erro: auth.erro });
-
     const corpo = await lerCorpo(req);
     if (corpo === null) return enviarJson(res, 400, { erro: 'JSON inválido.' });
 
@@ -354,6 +349,7 @@ async function iniciarServidor() {
       console.log(`  Banco registros: ${repoRegistros.caminho}`);
       console.log(`  Banco crachás:   ${repoChaves.caminho}`);
       console.log(`  Usuário login:   ${credenciais.usuario}`);
+      console.log('  Retirada/devolução: sem login | Cadastro de crachás: com login');
       if (!credenciais.hash && !credenciais.senhaPlana) {
         console.warn('  AVISO: crie o arquivo .env com AUTH_PASSWORD para habilitar o login.');
       }

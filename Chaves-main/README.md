@@ -53,7 +53,7 @@ npm start
 Não é necessário `npm install` — o servidor usa apenas Node.js.
 
 3. Acesse **http://localhost:3000** (front e API na mesma origem; `config.js` com `API_BASE_URL` vazio).
-4. Faça login em **login.html** antes de cadastrar crachás ou registrar retiradas/devoluções.
+4. Faça login em **login.html** apenas para cadastrar ou excluir crachás. Retiradas e devoluções não exigem login.
 
 ### `npm start` não funciona?
 
@@ -69,7 +69,7 @@ Não é necessário `npm install` — o servidor usa apenas Node.js.
 |------|-----------|
 | **Banco** | Arquivos JSON em `database/` na máquina onde roda `npm start` |
 | **Leitura** | Qualquer um pode consultar crachás e histórico (GET) |
-| **Alteração** | Cadastro, retirada e devolução exigem login (POST/PATCH com token) |
+| **Alteração** | Cadastro e exclusão de crachás exigem login; retirada e devolução são públicas |
 | **Credenciais** | `AUTH_USER` e `AUTH_PASSWORD` no arquivo `.env` |
 
 Para gerar hash da senha (opcional, mais seguro que texto puro no `.env`):

@@ -5,9 +5,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Controle de Crachás - Início</title>
-  <style>
-  
-  </style>
 </head>
 <body>
 
@@ -20,8 +17,7 @@
       <a href="index.html">Página Inicial</a>
       <a href="cadastro.html">Cadastros</a>
       <a href="registros.html">Registros</a>
-      <a href="login.html" id="link-login">Login</a>
-      <button type="button" id="logout" class="logout-btn" style="display:none">Sair</button>
+      <a href="login.html" title="Login necessário apenas para cadastrar crachás">Login (cadastro)</a>
       <a id="logoserra" href="index.html">
       <img src="/serra_morena sem fundo cópia.gif" alt="LOGO" link="index.html" class="logo">
       </a>
@@ -33,15 +29,55 @@
     <section class="registro">
       <h2>Registrar Retirada de Crachá</h2>
       <form id="form-registro">
-        <label for="chave">Crachá:</label>
-        <select id="chave" required>
-          <option value="">Carregando...</option>
-        </select>
+        <fieldset class="tipo-cracha">
+          <legend>Tipo de crachá</legend>
+          <div class="tipo-cracha__opcoes">
+            <label class="tipo-opcao tipo-opcao--provisorio">
+              <input type="radio" name="tipo-cracha" value="provisorio" required />
+              <span class="tipo-opcao__card">
+                <span class="tipo-opcao__icone" aria-hidden="true">P</span>
+                <span class="tipo-opcao__texto">
+                  <strong>Provisório</strong>
+                  <small>Uso temporário</small>
+                </span>
+              </span>
+            </label>
+            <label class="tipo-opcao tipo-opcao--visitante">
+              <input type="radio" name="tipo-cracha" value="visitante" />
+              <span class="tipo-opcao__card">
+                <span class="tipo-opcao__icone" aria-hidden="true">V</span>
+                <span class="tipo-opcao__texto">
+                  <strong>Visitante</strong>
+                  <small>Acesso externo</small>
+                </span>
+              </span>
+            </label>
+            <label class="tipo-opcao tipo-opcao--terceiros">
+              <input type="radio" name="tipo-cracha" value="terceiros" />
+              <span class="tipo-opcao__card">
+                <span class="tipo-opcao__icone" aria-hidden="true">T</span>
+                <span class="tipo-opcao__texto">
+                  <strong>Terceiros</strong>
+                  <small>Prestadores</small>
+                </span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
 
-        <label for="nome-retirada">Nome de quem retira:</label>
-        <input type="text" id="nome-retirada" name="nome-retirada" placeholder="Digite o nome completo" required />
+        <div class="campo-form">
+          <label for="chave">Crachá</label>
+          <select id="chave" required disabled>
+            <option value="">Selecione o tipo de crachá primeiro</option>
+          </select>
+        </div>
 
-        <button type="submit">Registrar Retirada</button>
+        <div class="campo-form">
+          <label for="nome-retirada">Nome de quem retira</label>
+          <input type="text" id="nome-retirada" name="nome-retirada" placeholder="Digite o nome completo" required />
+        </div>
+
+        <button type="submit">Registrar retirada</button>
       </form>
     </section>
 
@@ -54,20 +90,6 @@
   </main>
   <script src="config.js"></script>
   <script src="api.js"></script>
-  <script src="auth.js"></script>
-  <script src="script.js"></script>
-  <script>
-    (function atualizarNavAuth() {
-      const linkLogin = document.getElementById('link-login');
-      const btnLogout = document.getElementById('logout');
-      if (estaAutenticado()) {
-        if (linkLogin) linkLogin.style.display = 'none';
-        if (btnLogout) btnLogout.style.display = '';
-        configurarBotaoLogout('logout');
-      } else if (linkLogin) {
-        linkLogin.textContent = 'Login (necessário para registrar)';
-      }
-    })();
-  </script>
+  <script src="script.js?v=2"></script>
 </body>
 </html>
