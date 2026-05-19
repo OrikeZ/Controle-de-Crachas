@@ -14,6 +14,28 @@ const TIPOS_CRACHA = [
   { id: 'terceiros', label: 'Crachá Terceiros', palavra: 'terceiro' }
 ];
 
+const ORDEM_TIPOS_CRACHA = ['visitante', 'provisorio', 'terceiros'];
+
+function indiceOrdemTipo(tipoId) {
+  const idx = ORDEM_TIPOS_CRACHA.indexOf(tipoId);
+  return idx === -1 ? ORDEM_TIPOS_CRACHA.length : idx;
+}
+
+function numeroOrdemCracha(numero) {
+  const match = String(numero || '').match(/(\d+)\s*$/);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+function compararCrachas(a, b) {
+  const tipoA = obterTipoPorNumero(a.numero);
+  const tipoB = obterTipoPorNumero(b.numero);
+  const porTipo = indiceOrdemTipo(tipoA) - indiceOrdemTipo(tipoB);
+  if (porTipo !== 0) return porTipo;
+  const porNumero = numeroOrdemCracha(a.numero) - numeroOrdemCracha(b.numero);
+  if (porNumero !== 0) return porNumero;
+  return String(a.numero).localeCompare(String(b.numero), 'pt-BR', { numeric: true });
+}
+
 function normalizarTexto(texto) {
   return (texto || '')
     .normalize('NFD')
@@ -55,7 +77,99 @@ function obterTipoSelecionado() {
   return selecionado ? selecionado.value : null;
 }
 
-const registrosPorPagina = 20;
+let resolverModalConfirmacao = null;
+let sincronizandoTipoPeloCracha = false;
+
+function fecharModalConfirmacao(resultado) {
+  const modal = document.getElementById('modal-confirmacao');
+  if (!modal) return;
+
+  modal.hidden = true;
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+
+  if (resolverModalConfirmacao) {
+    const resolver = resolverModalConfirmacao;
+    resolverModalConfirmacao = null;
+    resolver(resultado);
+  }
+}
+
+function configurarModalConfirmacao() {
+  const modal = document.getElementById('modal-confirmacao');
+  if (!modal || modal.dataset.inicializado) return;
+
+  modal.dataset.inicializado = 'true';
+
+  modal.querySelectorAll('[data-modal-fechar]').forEach((el) => {
+    el.addEventListener('click', () => fecharModalConfirmacao(false));
+  });
+
+  document.getElementById('modal-confirmacao-ok')?.addEventListener('click', () => {
+    fecharModalConfirmacao(true);
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !modal.hidden) {
+      fecharModalConfirmacao(false);
+    }
+  });
+}
+
+function mostrarModalConfirmacao({
+  titulo,
+  mensagem = '',
+  detalhes = {},
+  textoConfirmar = 'Confirmar',
+  textoCancelar = 'Cancelar',
+  variante = 'primaria'
+}) {
+  configurarModalConfirmacao();
+
+  const modal = document.getElementById('modal-confirmacao');
+  if (!modal) return Promise.resolve(false);
+
+  const tituloEl = document.getElementById('modal-confirmacao-titulo');
+  const mensagemEl = document.getElementById('modal-confirmacao-mensagem');
+  const detalhesEl = document.getElementById('modal-confirmacao-detalhes');
+  const btnOk = document.getElementById('modal-confirmacao-ok');
+  const btnCancelar = modal.querySelector('.btn-modal-cancelar');
+
+  if (tituloEl) tituloEl.textContent = titulo;
+  if (mensagemEl) {
+    mensagemEl.textContent = mensagem;
+    mensagemEl.hidden = !mensagem;
+  }
+
+  if (detalhesEl) {
+    detalhesEl.innerHTML = '';
+    Object.entries(detalhes).forEach(([rotulo, valor]) => {
+      const dt = document.createElement('dt');
+      dt.textContent = rotulo;
+      const dd = document.createElement('dd');
+      dd.textContent = valor;
+      detalhesEl.appendChild(dt);
+      detalhesEl.appendChild(dd);
+    });
+  }
+
+  if (btnOk) {
+    btnOk.textContent = textoConfirmar;
+    btnOk.classList.toggle('btn-modal-confirmar--perigo', variante === 'perigo');
+  }
+  if (btnCancelar) btnCancelar.textContent = textoCancelar;
+
+  modal.hidden = false;
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  btnOk?.focus();
+
+  return new Promise((resolve) => {
+    resolverModalConfirmacao = resolve;
+  });
+}
+
+const registrosPorPagina = 15;
 let paginaAtual = 1;
 let totalPaginas = 1;
 
@@ -168,44 +282,68 @@ async function atualizarRegistro(id, dados) {
 
 // --- Funções de preenchimento dos selects ---
 
+function adicionarOptionCracha(selectOuGrupo, chaveObj) {
+  const option = document.createElement('option');
+  option.value = chaveObj.numero;
+  const local = chaveObj.local && chaveObj.local !== '-' ? ` (${chaveObj.local})` : '';
+  option.textContent = `${chaveObj.numero}${local}`;
+  selectOuGrupo.appendChild(option);
+}
+
 // Preencher select de crachás cadastrados (disponíveis para retirada)
 function preencherSelectChave() {
   if (!selectChave) return;
 
   const tipoSelecionado = obterTipoSelecionado();
-
-  if (!tipoSelecionado) {
-    selectChave.innerHTML = '<option value="">Selecione o tipo de crachá primeiro</option>';
-    selectChave.disabled = true;
-    return;
-  }
+  const valorAtual = selectChave.value;
 
   selectChave.disabled = false;
   selectChave.innerHTML = '<option value="">Selecione o crachá</option>';
 
-  const chavesDisponiveis = chaves.filter((chaveObj) =>
-    crachaPertenceAoTipo(chaveObj.numero, tipoSelecionado) &&
-    !registros.some((r) => r.chave === chaveObj.numero && !r.devolvido)
+  let chavesDisponiveis = chaves.filter(
+    (chaveObj) =>
+      obterTipoPorNumero(chaveObj.numero) &&
+      !registros.some((r) => r.chave === chaveObj.numero && !r.devolvido)
   );
+
+  if (tipoSelecionado) {
+    chavesDisponiveis = chavesDisponiveis.filter((chaveObj) =>
+      crachaPertenceAoTipo(chaveObj.numero, tipoSelecionado)
+    );
+  }
+
+  chavesDisponiveis.sort(compararCrachas);
 
   if (chavesDisponiveis.length === 0) {
     const option = document.createElement('option');
     option.value = '';
-    option.textContent = chaves.some((c) => crachaPertenceAoTipo(c.numero, tipoSelecionado))
-      ? 'Nenhum crachá disponível deste tipo'
-      : 'Nenhum crachá cadastrado deste tipo';
+    option.textContent = tipoSelecionado
+      ? (chaves.some((c) => crachaPertenceAoTipo(c.numero, tipoSelecionado))
+        ? 'Nenhum crachá disponível deste tipo'
+        : 'Nenhum crachá cadastrado deste tipo')
+      : 'Nenhum crachá disponível no momento';
     option.disabled = true;
     selectChave.appendChild(option);
     return;
   }
 
-  chavesDisponiveis.forEach((c) => {
-    const option = document.createElement('option');
-    option.value = c.numero;
-    const local = c.local && c.local !== '-' ? ` (${c.local})` : '';
-    option.textContent = `${c.numero}${local}`;
-    selectChave.appendChild(option);
-  });
+  if (!tipoSelecionado) {
+    ORDEM_TIPOS_CRACHA.forEach((tipo) => {
+      const doTipo = chavesDisponiveis.filter((c) => obterTipoPorNumero(c.numero) === tipo);
+      if (doTipo.length === 0) return;
+
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = labelTipo(tipo);
+      doTipo.forEach((c) => adicionarOptionCracha(optgroup, c));
+      selectChave.appendChild(optgroup);
+    });
+  } else {
+    chavesDisponiveis.forEach((c) => adicionarOptionCracha(selectChave, c));
+  }
+
+  if (valorAtual && [...selectChave.options].some((o) => o.value === valorAtual)) {
+    selectChave.value = valorAtual;
+  }
 }
 
 // Preencher lista de retiradas abertas no index
@@ -238,6 +376,19 @@ function atualizarListaRetiradas() {
   btnDevolver.title = 'Registrar devolução da chave';
 
   btnDevolver.addEventListener('click', async () => {
+    const confirmar = await mostrarModalConfirmacao({
+      titulo: 'Confirmar devolução',
+      mensagem: 'Deseja registrar a devolução deste crachá?',
+      detalhes: {
+        Crachá: r.chave,
+        'Retirado por': r.pessoa,
+        Tipo: textoBadgeTipo(obterTipoRegistro(r))
+      },
+      textoConfirmar: 'Confirmar devolução',
+      variante: 'perigo'
+    });
+    if (!confirmar) return;
+
     const devolvido = new Date().toISOString();
 
     try {
@@ -431,15 +582,15 @@ formRegistro?.addEventListener('submit', async (e) => {
 
   const pessoaNome = inputNomeRetirada?.value.trim() || '';
   const chaveNumero = selectChave.value;
-  const tipoCracha = obterTipoSelecionado();
-
-  if (!tipoCracha) {
-    alert('Selecione o tipo de crachá.');
-    return;
-  }
+  const tipoCracha = obterTipoSelecionado() || obterTipoPorNumero(chaveNumero);
 
   if (!pessoaNome || !chaveNumero) {
     alert('Selecione o crachá e informe o nome de quem retira.');
+    return;
+  }
+
+  if (!tipoCracha) {
+    alert('Selecione um crachá válido.');
     return;
   }
 
@@ -458,6 +609,18 @@ formRegistro?.addEventListener('submit', async (e) => {
     alert('Este crachá já está retirado.');
     return;
   }
+
+  const confirmar = await mostrarModalConfirmacao({
+    titulo: 'Confirmar retirada',
+    mensagem: 'Confira os dados antes de registrar a retirada do crachá.',
+    detalhes: {
+      Tipo: labelTipo(tipoCracha),
+      Crachá: chaveNumero,
+      'Nome de quem retira': pessoaNome
+    },
+    textoConfirmar: 'Registrar retirada'
+  });
+  if (!confirmar) return;
 
   try {
     const novo = await criarRegistro({
@@ -482,11 +645,30 @@ formRegistro?.addEventListener('submit', async (e) => {
 // --- Inicialização ---
 
 function initIndex() {
+  configurarModalConfirmacao();
+
   document.querySelectorAll('input[name="tipo-cracha"]').forEach((radio) => {
     radio.addEventListener('change', () => {
+      if (sincronizandoTipoPeloCracha) return;
       preencherSelectChave();
-      if (selectChave) selectChave.value = '';
     });
+  });
+
+  selectChave?.addEventListener('change', () => {
+    const numero = selectChave.value;
+    if (!numero) return;
+
+    const tipo = obterTipoPorNumero(numero);
+    if (!tipo) return;
+
+    const radio = document.querySelector(`input[name="tipo-cracha"][value="${tipo}"]`);
+    if (!radio || radio.checked) return;
+
+    sincronizandoTipoPeloCracha = true;
+    radio.checked = true;
+    preencherSelectChave();
+    selectChave.value = numero;
+    sincronizandoTipoPeloCracha = false;
   });
 
   preencherSelectChave();
@@ -500,19 +682,12 @@ function initCadastro() {
 
 }
 
-function preencherTabelaRegistros() {
-  const tabela = document.getElementById('tabela-registros').querySelector('tbody');
+function obterRegistrosFiltrados() {
+  let registrosFiltrados = [...registros];
   const filtroNome = document.getElementById('filtro-nome');
   const filtroTipo = document.getElementById('filtro-tipo');
   const filtroChave = document.getElementById('filtro-chave');
 
-  if (!tabela) return;
-
-  tabela.innerHTML = ''; // Limpa a tabela
-
-  let registrosFiltrados = [...registros];
-
-  // Aplica filtros
   if (filtroNome && filtroNome.value.trim()) {
     const termo = normalizarTexto(filtroNome.value.trim());
     registrosFiltrados = registrosFiltrados.filter((r) =>
@@ -525,8 +700,67 @@ function preencherTabelaRegistros() {
     );
   }
   if (filtroChave && filtroChave.value) {
-    registrosFiltrados = registrosFiltrados.filter(r => r.chave === filtroChave.value);
+    registrosFiltrados = registrosFiltrados.filter((r) => r.chave === filtroChave.value);
   }
+
+  return registrosFiltrados;
+}
+
+function atualizarControlesPaginacao(totalItens) {
+  totalPaginas = Math.max(1, Math.ceil(totalItens / registrosPorPagina));
+  if (paginaAtual > totalPaginas) paginaAtual = totalPaginas;
+  if (paginaAtual < 1) paginaAtual = 1;
+
+  const container = document.querySelector('.paginacao-registros');
+  const btnAnt = document.getElementById('pagina-anterior');
+  const btnProx = document.getElementById('pagina-proxima');
+  const info = document.getElementById('info-pagina');
+  const seletor = document.getElementById('seletor-pagina');
+
+  if (container) container.hidden = totalItens === 0;
+
+  if (btnAnt) btnAnt.disabled = paginaAtual <= 1;
+  if (btnProx) btnProx.disabled = paginaAtual >= totalPaginas;
+
+  if (info) {
+    if (totalItens === 0) {
+      info.textContent = '';
+    } else {
+      const inicio = (paginaAtual - 1) * registrosPorPagina + 1;
+      const fim = Math.min(paginaAtual * registrosPorPagina, totalItens);
+      info.textContent = `${inicio}–${fim} de ${totalItens}`;
+    }
+  }
+
+  if (seletor) {
+    seletor.innerHTML = '';
+    for (let i = 1; i <= totalPaginas; i++) {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = `Página ${i} de ${totalPaginas}`;
+      seletor.appendChild(opt);
+    }
+    seletor.value = String(paginaAtual);
+    seletor.disabled = totalPaginas <= 1;
+  }
+}
+
+function irParaPaginaRegistros(novaPagina) {
+  paginaAtual = novaPagina;
+  preencherTabelaRegistros(false);
+}
+
+function preencherTabelaRegistros(resetarPagina = false) {
+  const tabela = document.getElementById('tabela-registros')?.querySelector('tbody');
+
+  if (!tabela) return;
+
+  if (resetarPagina) paginaAtual = 1;
+
+  tabela.innerHTML = '';
+
+  const registrosFiltrados = obterRegistrosFiltrados();
+  atualizarControlesPaginacao(registrosFiltrados.length);
 
   if (registrosFiltrados.length === 0) {
     const row = document.createElement('tr');
@@ -538,7 +772,10 @@ function preencherTabelaRegistros() {
     return;
   }
 
-  registrosFiltrados.forEach(registro => {
+  const inicio = (paginaAtual - 1) * registrosPorPagina;
+  const registrosPagina = registrosFiltrados.slice(inicio, inicio + registrosPorPagina);
+
+  registrosPagina.forEach(registro => {
     const tr = document.createElement('tr');
 
     const tdPessoa = document.createElement('td');
@@ -578,26 +815,51 @@ function initRegistros() {
     filtroChave?.appendChild(opt);
   });
 
-  filtroNome?.addEventListener('input', preencherTabelaRegistros);
-  filtroTipo?.addEventListener('change', preencherTabelaRegistros);
-  filtroChave?.addEventListener('change', preencherTabelaRegistros);
+  filtroNome?.addEventListener('input', () => preencherTabelaRegistros(true));
+  filtroTipo?.addEventListener('change', () => preencherTabelaRegistros(true));
+  filtroChave?.addEventListener('change', () => preencherTabelaRegistros(true));
+
+  document.getElementById('pagina-anterior')?.addEventListener('click', () => {
+    if (paginaAtual > 1) irParaPaginaRegistros(paginaAtual - 1);
+  });
+
+  document.getElementById('pagina-proxima')?.addEventListener('click', () => {
+    if (paginaAtual < totalPaginas) irParaPaginaRegistros(paginaAtual + 1);
+  });
+
+  document.getElementById('seletor-pagina')?.addEventListener('change', (e) => {
+    const pagina = parseInt(e.target.value, 10);
+    if (pagina >= 1 && pagina <= totalPaginas) irParaPaginaRegistros(pagina);
+  });
 
   preencherTabelaRegistros();
 }
 
 function exportarXLSX() {
-  const tabela = document.getElementById('tabela-registros');
-  if (!tabela) {
-    alert('Tabela não encontrada.');
+  if (typeof XLSX === 'undefined') {
+    alert('Biblioteca de exportação não carregada.');
     return;
   }
 
-  // Cria uma planilha a partir da tabela HTML
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.table_to_sheet(tabela);
-  XLSX.utils.book_append_sheet(wb, ws, 'Registros');
+  const registrosFiltrados = obterRegistrosFiltrados();
+  if (registrosFiltrados.length === 0) {
+    alert('Não há registros para exportar.');
+    return;
+  }
 
-  // Salva o arquivo
+  const linhas = registrosFiltrados.map((registro) => ({
+    Pessoa: registro.pessoa,
+    Tipo: labelTipo(obterTipoRegistro(registro)),
+    Crachá: registro.chave,
+    'Data/Hora Retirada': new Date(registro.retirada).toLocaleString(),
+    'Data/Hora Devolução': registro.devolvido
+      ? new Date(registro.devolvido).toLocaleString()
+      : '—'
+  }));
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(linhas);
+  XLSX.utils.book_append_sheet(wb, ws, 'Registros');
   XLSX.writeFile(wb, 'registros_chaves.xlsx');
 }
 

@@ -32,7 +32,7 @@ body {
   color: var(--cor-texto);
   line-height: 1.6;
   min-height: 100vh;
-  padding: 110px 20px 48px;
+  padding: 104px 20px 48px;
 }
 
 /* --- Cabeçalho --- */
@@ -42,7 +42,7 @@ header {
   left: 0;
   width: 100%;
   background: linear-gradient(135deg, var(--cor-primaria) 0%, var(--cor-primaria-escura) 100%);
-  padding: 12px 24px;
+  padding: 6px 20px;
   box-shadow: var(--sombra-md);
   z-index: 1000;
 }
@@ -51,36 +51,40 @@ header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   max-width: 1100px;
   margin: 0 auto;
 }
 
-@media (min-width: 700px) {
+@media (min-width: 900px) {
   .header-content {
     flex-direction: row;
     justify-content: space-between;
+    align-items: center;
+    gap: 12px;
   }
 }
 
 header h1 {
   color: #fff;
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 700;
+  line-height: 1.2;
   letter-spacing: -0.02em;
 }
 
 header img.logo {
-  width: 72px;
+  width: 96px;
   height: auto;
+  display: block;
   border-radius: 6px;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 nav {
   display: flex;
-  gap: 8px 16px;
+  gap: 4px 10px;
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
@@ -90,10 +94,15 @@ nav a {
   color: rgba(255, 255, 255, 0.92);
   text-decoration: none;
   font-weight: 600;
-  font-size: 0.9rem;
-  padding: 6px 12px;
+  font-size: 0.85rem;
+  padding: 4px 10px;
   border-radius: var(--raio-sm);
   transition: background var(--transicao), color var(--transicao);
+}
+
+nav a#logoserra {
+  padding: 0;
+  line-height: 0;
 }
 
 nav a:hover {
@@ -365,6 +374,136 @@ button.btn-excluir:hover {
   background: rgba(255, 255, 255, 0.3) !important;
 }
 
+/* --- Modal de confirmação --- */
+.modal-confirmacao {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-confirmacao[hidden] {
+  display: none;
+}
+
+.modal-confirmacao__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.modal-confirmacao__dialog {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: var(--cor-card);
+  border-radius: var(--raio);
+  padding: 28px 26px 24px;
+  box-shadow: var(--sombra-lg);
+  border: 1px solid var(--cor-borda);
+  animation: modal-entrada 0.22s ease;
+}
+
+@keyframes modal-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-confirmacao__titulo {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--cor-texto);
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--cor-primaria);
+  text-align: center;
+}
+
+.modal-confirmacao__mensagem {
+  font-size: 0.95rem;
+  color: var(--cor-texto-suave);
+  text-align: center;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.modal-confirmacao__detalhes {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+}
+
+.modal-confirmacao__detalhes:empty {
+  display: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.modal-confirmacao__detalhes dt {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cor-texto-suave);
+}
+
+.modal-confirmacao__detalhes dd {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--cor-texto);
+  margin: 0 0 6px;
+}
+
+.modal-confirmacao__detalhes dd:last-child {
+  margin-bottom: 0;
+}
+
+.modal-confirmacao__acoes {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.modal-confirmacao__acoes button {
+  flex: 1 1 120px;
+  min-width: 110px;
+}
+
+.btn-modal-cancelar {
+  background: #fff !important;
+  color: var(--cor-texto) !important;
+  border: 1.5px solid var(--cor-borda) !important;
+}
+
+.btn-modal-cancelar:hover {
+  background: #f9fafb !important;
+  border-color: #d1d5db !important;
+}
+
+.btn-modal-confirmar {
+  background: linear-gradient(135deg, var(--cor-primaria) 0%, var(--cor-primaria-escura) 100%) !important;
+}
+
+.btn-modal-confirmar--perigo {
+  background: linear-gradient(135deg, var(--cor-perigo) 0%, #b91c1c 100%) !important;
+}
+
 /* --- Lista de retiradas abertas --- */
 ul#lista-retiradas {
   margin-top: 8px;
@@ -555,16 +694,68 @@ main.pagina-registros > h2 {
 
 .paginacao-registros {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   align-items: center;
-  gap: 16px;
+  gap: 12px 16px;
   margin: 20px 0;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fafbfc 0%, #f3f4f6 100%);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
 }
 
 .paginacao-registros button {
   background: var(--cor-acento);
   padding: 8px 16px;
   font-size: 0.85rem;
+}
+
+.paginacao-registros button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.paginacao-registros__seletor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.paginacao-registros__rotulo {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.paginacao-registros select {
+  padding: 8px 12px;
+  border: 1.5px solid var(--cor-borda);
+  border-radius: var(--raio-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #fff;
+  color: var(--cor-texto);
+  min-width: 140px;
+  cursor: pointer;
+}
+
+.paginacao-registros select:focus {
+  border-color: var(--cor-primaria);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(193, 20, 17, 0.1);
+}
+
+.paginacao-registros__info {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  min-width: 120px;
+  text-align: center;
 }
 
 /* --- Cadastro (seções soltas no body) --- */

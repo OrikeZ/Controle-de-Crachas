@@ -32,23 +32,23 @@
         <fieldset class="tipo-cracha">
           <legend>Tipo de crachá</legend>
           <div class="tipo-cracha__opcoes">
-            <label class="tipo-opcao tipo-opcao--provisorio">
-              <input type="radio" name="tipo-cracha" value="provisorio" required />
-              <span class="tipo-opcao__card">
-                <span class="tipo-opcao__icone" aria-hidden="true">P</span>
-                <span class="tipo-opcao__texto">
-                  <strong>Provisório</strong>
-                  <small>Uso temporário</small>
-                </span>
-              </span>
-            </label>
             <label class="tipo-opcao tipo-opcao--visitante">
-              <input type="radio" name="tipo-cracha" value="visitante" />
+              <input type="radio" name="tipo-cracha" value="visitante" required />
               <span class="tipo-opcao__card">
                 <span class="tipo-opcao__icone" aria-hidden="true">V</span>
                 <span class="tipo-opcao__texto">
                   <strong>Visitante</strong>
                   <small>Acesso externo</small>
+                </span>
+              </span>
+            </label>
+            <label class="tipo-opcao tipo-opcao--provisorio">
+              <input type="radio" name="tipo-cracha" value="provisorio" />
+              <span class="tipo-opcao__card">
+                <span class="tipo-opcao__icone" aria-hidden="true">P</span>
+                <span class="tipo-opcao__texto">
+                  <strong>Provisório</strong>
+                  <small>Uso temporário</small>
                 </span>
               </span>
             </label>
@@ -67,8 +67,8 @@
 
         <div class="campo-form">
           <label for="chave">Crachá</label>
-          <select id="chave" required disabled>
-            <option value="">Selecione o tipo de crachá primeiro</option>
+          <select id="chave" required>
+            <option value="">Selecione o crachá</option>
           </select>
         </div>
 
@@ -88,8 +88,22 @@
       </ul>
     </section>
   </main>
+
+  <div id="modal-confirmacao" class="modal-confirmacao" hidden aria-hidden="true">
+    <div class="modal-confirmacao__backdrop" data-modal-fechar></div>
+    <div class="modal-confirmacao__dialog" role="dialog" aria-modal="true" aria-labelledby="modal-confirmacao-titulo">
+      <h3 id="modal-confirmacao-titulo" class="modal-confirmacao__titulo"></h3>
+      <p id="modal-confirmacao-mensagem" class="modal-confirmacao__mensagem"></p>
+      <dl id="modal-confirmacao-detalhes" class="modal-confirmacao__detalhes"></dl>
+      <div class="modal-confirmacao__acoes">
+        <button type="button" class="btn-modal-cancelar" data-modal-fechar>Cancelar</button>
+        <button type="button" class="btn-modal-confirmar" id="modal-confirmacao-ok">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script src="api.js"></script>
-  <script src="script.js?v=2"></script>
+  <script src="script.js?v=6"></script>
 </body>
 </html>
