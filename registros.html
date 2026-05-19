@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controle de Crachás - Registros</title>
+</head>
+<body>
+ 
+<header>
+  <div class="header-content">
+    <div>
+      <h1>Controle de Crachás</h1>
+    </div>
+    <nav>
+      <a href="index.html">Página Inicial</a>
+      <a href="cadastro.html">Cadastros</a>
+      <a href="registros.html">Registros</a>
+      <a id="logoserra" href="index.html">
+      <img src="/serra_morena sem fundo cópia.gif" alt="LOGO" link="index.html" class="logo">
+      </a>
+    </nav>
+  </div>
+</header>
+
+
+  <main class="pagina-registros">
+    <h2>Histórico de registros</h2>
+
+    <section class="filtros-registros">
+      <div class="campo-filtro">
+        <label for="filtro-tipo">Tipo de crachá</label>
+        <select id="filtro-tipo">
+          <option value="">Todos os tipos</option>
+          <option value="provisorio">Crachá Provisório</option>
+          <option value="visitante">Crachá Visitante</option>
+          <option value="terceiros">Crachá Terceiros</option>
+        </select>
+      </div>
+
+      <div class="campo-filtro">
+        <label for="filtro-chave">Crachá</label>
+        <select id="filtro-chave">
+          <option value="">Todos os crachás</option>
+        </select>
+      </div>
+    </section>
+
+    <table id="tabela-registros">
+      <thead>
+        <tr>
+          <th>Pessoa</th>
+          <th>Tipo</th>
+          <th>Crachá</th>
+          <th>Data/Hora Retirada</th>
+          <th>Data/Hora Devolução</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Registros via JS -->
+      </tbody>
+    </table>
+
+    <div class="paginacao-registros">
+      <button id="pagina-anterior">Anterior</button>
+      <span id="info-pagina"></span>
+      <button id="pagina-proxima">Próxima</button>
+    </div>
+
+    <div class="acoes-registros">
+      <button type="button" onclick="exportarXLSX()">Exportar para XLSX</button>
+      <a href="index.html"><button type="button">Voltar para início</button></a>
+    </div>
+  </main>
+
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="script.js?v=2"></script>
+</body>
+</html>
