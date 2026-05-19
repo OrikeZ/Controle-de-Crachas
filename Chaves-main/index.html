@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controle de Crachás - Início</title>
+  <style>
+  
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-content">
+    <div>
+      <h1>Controle de Crachás</h1>
+    </div>
+    <nav>
+      <a href="index.html">Página Inicial</a>
+      <a href="cadastro.html">Cadastros</a>
+      <a href="registros.html">Registros</a>
+      <a id="logoserra" href="index.html">
+      <img src="/serra_morena sem fundo cópia.gif" alt="LOGO" link="index.html" class="logo">
+      </a>
+    </nav>
+  </div>
+</header>
+
+  <main>
+    <section class="registro">
+      <h2>Registrar Retirada de Crachá</h2>
+      <form id="form-registro">
+        <label for="pessoa">Pessoa:</label>
+        <select id="pessoa" required>
+          <option value="">Carregando...</option>
+        </select>
+
+        <label for="chave">Crachá:</label>
+        <select id="chave" required>
+          <option value="">Carregando...</option>
+        </select>
+
+        <button type="submit">Registrar Retirada</button>
+      </form>
+    </section>
+
+    <section class="abertas">
+      <h2>Crachás Retirados (Em Aberto)</h2>
+      <ul id="lista-retiradas">
+        <li>Carregando dados...</li>
+      </ul>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

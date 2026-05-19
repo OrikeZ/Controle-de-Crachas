@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Controle de Chaves - Registros</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+ 
+<header>
+  <div class="header-content">
+    <div>
+      <h1>Controle de Chaves</h1>
+    </div>
+    <nav>
+      <a href="index.html">Página Inicial</a>
+      <a href="cadastro.html">Cadastros</a>
+      <a href="registros.html">Registros</a>
+      <a id="logoserra" href="index.html">
+      <img src="/serra_morena sem fundo cópia.gif" alt="LOGO" link="index.html" class="logo">
+      </a>
+    </nav>
+  </div>
+</header>
+
+
+  <main>
+    <section>
+      <label for="filtro-pessoa">Filtrar por Pessoa:</label>
+      <select id="filtro-pessoa">
+        <option value="">Todas</option>
+      </select>
+
+      <label for="filtro-chave">Filtrar por Crachá:</label>
+      <select id="filtro-chave">
+        <option value="">Todas</option>
+      </select>
+    </section>
+
+    <table id="tabela-registros">
+      <thead>
+        <tr>
+          <th>Pessoa</th>
+          <th>Crachá</th>
+          <th>Data/Hora Retirada</th>
+          <th>Data/Hora Devolução</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Registros via JS -->
+      </tbody>
+    </table>
+
+    <div style="display: flex; justify-content: center; gap: 20px; margin-bottom: 20px;">
+      <button id="pagina-anterior">Anterior</button>
+      <span id="info-pagina"></span>
+      <button id="pagina-proxima">Próxima</button>
+    </div>
+
+    <div style="text-align: center;">
+      <button onclick="exportarXLSX()">Exportar para XLSX</button>
+      <a href="index.html"><button>Voltar para Início</button></a>
+    </div>
+  </main>
+
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

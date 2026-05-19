@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <title>Login - Controle de Chaves</title>
+ </head>
+<body>
+   <header>
+  <div class="header-content">
+    <div>
+      <h1>Controle de Chaves</h1>
+    </div>
+    <nav>
+      <a href="index.html">Página Inicial</a>
+      <a href="cadastro.html">Cadastros</a>
+      <a href="registros.html">Registros</a>
+      <a id="logoserra" href="index.html">
+      <img src="/serra_morena sem fundo cópia.gif" alt="LOGO" link="index.html" class="logo">
+      </a>
+    </nav>
+  </div>
+</header>
+<main>
+    <form id="login-form">
+    <h2>Login</h2>
+    <label for="usuario">Usuário</label>
+    <input type="text" id="usuario" required />
+    <label for="senha">Senha</label>
+    <input type="password" id="senha" required />
+    <button type="submit">Entrar</button>
+  </form>
+
+ 
+
+  <script>
+    const form = document.getElementById('login-form');
+
+    // Usuário e senha fixos para teste (troque ou faça lista no localStorage)
+    const USUARIO_FIXO = 'admin';
+    const SENHA_FIXA = 'orikez610610';
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const usuario = document.getElementById('usuario').value.trim();
+      const senha = document.getElementById('senha').value;
+
+      if (usuario === USUARIO_FIXO && senha === SENHA_FIXA) {
+        localStorage.setItem('usuarioLogado', usuario); // Guarda sessão simples
+        window.location.href = 'cadastro.html'; // Redireciona para a pagina de cadastro
+      } else {
+        alert('Usuário ou senha incorretos!');
+      }
+    });
+  </script>
+</main>
+</footer>
+  <script> src="script.js"</script>
+</body>
+</html>
