@@ -1,60 +1,68 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css" />
   <meta charset="UTF-8" />
-  <title>Login - Controle de Chaves</title>
- </head>
+  <title>Login - Controle de Crachás</title>
+</head>
 <body>
-   <header>
-  <div class="header-content">
-    <div>
-      <h1>Controle de Chaves</h1>
+  <header>
+    <div class="header-content">
+      <div>
+        <h1>Controle de Crachás</h1>
+      </div>
+      <nav>
+        <a href="index.html">Página Inicial</a>
+        <a href="cadastro.html">Cadastros</a>
+        <a href="registros.html">Registros</a>
+        <a id="logoserra" href="index.html">
+          <img src="/serra_morena sem fundo cópia.gif" alt="LOGO" class="logo">
+        </a>
+      </nav>
     </div>
-    <nav>
-      <a href="index.html">Página Inicial</a>
-      <a href="cadastro.html">Cadastros</a>
-      <a href="registros.html">Registros</a>
-      <a id="logoserra" href="index.html">
-      <img src="/serra_morena sem fundo cópia.gif" alt="LOGO" link="index.html" class="logo">
-      </a>
-    </nav>
-  </div>
-</header>
-<main>
+  </header>
+  <main>
     <form id="login-form">
-    <h2>Login</h2>
-    <label for="usuario">Usuário</label>
-    <input type="text" id="usuario" required />
-    <label for="senha">Senha</label>
-    <input type="password" id="senha" required />
-    <button type="submit">Entrar</button>
-  </form>
+      <h2>Login</h2>
+      <p class="login-info">Acesso necessário para cadastrar crachás e registrar retiradas ou devoluções.</p>
+      <label for="usuario">Usuário</label>
+      <input type="text" id="usuario" name="usuario" autocomplete="username" required />
+      <label for="senha">Senha</label>
+      <input type="password" id="senha" name="senha" autocomplete="current-password" required />
+      <button type="submit">Entrar</button>
+    </form>
+  </main>
 
- 
-
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="auth.js"></script>
   <script>
     const form = document.getElementById('login-form');
 
-    // Usuário e senha fixos para teste (troque ou faça lista no localStorage)
-    const USUARIO_FIXO = 'admin';
-    const SENHA_FIXA = 'orikez610610';
+    if (estaAutenticado()) {
+      window.location.href = 'index.html';
+    }
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const usuario = document.getElementById('usuario').value.trim();
       const senha = document.getElementById('senha').value;
+      const botao = form.querySelector('button[type="submit"]');
 
-      if (usuario === USUARIO_FIXO && senha === SENHA_FIXA) {
-        localStorage.setItem('usuarioLogado', usuario); // Guarda sessão simples
-        window.location.href = 'cadastro.html'; // Redireciona para a pagina de cadastro
-      } else {
-        alert('Usuário ou senha incorretos!');
+      botao.disabled = true;
+      botao.textContent = 'Entrando...';
+
+      try {
+        await fazerLogin(usuario, senha);
+        const destino = new URLSearchParams(window.location.search).get('redirect') || 'index.html';
+        window.location.href = destino;
+      } catch (erro) {
+        alert(erro.message || 'Usuário ou senha incorretos!');
+      } finally {
+        botao.disabled = false;
+        botao.textContent = 'Entrar';
       }
     });
   </script>
-</main>
-</footer>
-  <script> src="script.js"</script>
 </body>
 </html>

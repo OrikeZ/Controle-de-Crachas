@@ -206,6 +206,14 @@ ul#lista-retiradas li button:hover {
   background-color: #c0392b;
 }
 
+button.btn-excluir {
+  background-color: #b91c1c;
+}
+
+button.btn-excluir:hover {
+  background-color: #991b1b;
+}
+
 .logout-btn {
   background-color: #ee6c4d;
   border: none;

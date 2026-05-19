@@ -8,24 +8,15 @@
 
 </head>
 
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const botaoLogout = document.getElementById('logout');
-    if (botaoLogout) {
-      botaoLogout.addEventListener('click', () => {
-        localStorage.removeItem('usuarioLogado');
-        window.location.href = 'login.html';
-      });
-    }
-  });
-</script>
 <body>
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="auth.js"></script>
   <script>
-  const usuarioLogado = localStorage.getItem('usuarioLogado');
-  if (!usuarioLogado) {
-    window.location.href = 'login.html';  // redireciona para o login caso não esteja logado
-  }
-</script>
+    if (!exigirLogin('login.html?redirect=cadastro.html')) {
+      // redirecionado
+    }
+  </script>
 <header>
   <div class="header-content">
     <div class="header-title">
@@ -96,7 +87,18 @@
 
 
 
-      <button type="submit">Adicionar Chave</button>
+      <button type="submit">Adicionar Crachá</button>
+    </form>
+  </section>
+
+  <section>
+    <h2>Excluir Crachá</h2>
+    <form id="form-excluir-chave">
+      <label for="select-chave-excluir">Crachá cadastrado:</label>
+      <select id="select-chave-excluir" required>
+        <option value="">Carregando...</option>
+      </select>
+      <button type="submit" class="btn-excluir">Excluir Crachá</button>
     </form>
   </section>
 <!-- 
@@ -155,5 +157,8 @@
 </section> --> 
 
   <script src="script-cadastro.js"></script>
+  <script>
+    configurarBotaoLogout('logout');
+  </script>
 </body>
 </html>

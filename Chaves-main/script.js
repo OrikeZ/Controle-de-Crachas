@@ -6,6 +6,8 @@ const storageKeys = {
   registros: 'controle-chaves-registros'
 };
 
+const API_REGISTROS = () => apiUrl('/api/registros');
+
 const registrosPorPagina = 20;
 let paginaAtual = 1;
 let totalPaginas = 1;
@@ -14,11 +16,11 @@ let totalPaginas = 1;
 let setores = JSON.parse(localStorage.getItem(storageKeys.setores)) || [];
 let cargos = JSON.parse(localStorage.getItem(storageKeys.cargos)) || [];
 let pessoas = JSON.parse(localStorage.getItem(storageKeys.pessoas)) || [];
-let chaves = JSON.parse(localStorage.getItem(storageKeys.chaves)) || [];
-let registros = JSON.parse(localStorage.getItem(storageKeys.registros)) || [];
+let chaves = [];
+let registros = [];
 
 // ELEMENTOS DOM index.html
-const selectPessoa = document.getElementById('pessoa');
+const inputNomeRetirada = document.getElementById('nome-retirada');
 const selectChave = document.getElementById('chave');
 const listaRetiradas = document.getElementById('lista-retiradas');
 const formRegistro = document.getElementById('form-registro');
@@ -39,50 +41,127 @@ const inputNovoCargo = document.getElementById('novo-cargo');
 const inputNovaPessoa = document.getElementById('nova-pessoa');
 const inputNovaChave = document.getElementById('nova-chave');
 
-// Função para salvar tudo no localStorage
+// Setores, cargos e pessoas ainda no localStorage; crachás e registros ficam no servidor (database/*.json)
 function salvarDados() {
   localStorage.setItem(storageKeys.setores, JSON.stringify(setores));
   localStorage.setItem(storageKeys.cargos, JSON.stringify(cargos));
   localStorage.setItem(storageKeys.pessoas, JSON.stringify(pessoas));
-  localStorage.setItem(storageKeys.chaves, JSON.stringify(chaves));
-  localStorage.setItem(storageKeys.registros, JSON.stringify(registros));
+}
+
+async function carregarChaves() {
+  try {
+    chaves = await buscarChaves();
+    if (await migrarChavesDoLocalStorage()) {
+      chaves = await buscarChaves();
+    }
+  } catch {
+    alert(mensagemErroApi());
+    chaves = [];
+  }
+}
+
+async function carregarRegistros() {
+  try {
+    const resposta = await fetch(API_REGISTROS());
+    if (!resposta.ok) throw new Error('Falha ao carregar registros');
+    registros = await resposta.json();
+    await migrarRegistrosDoLocalStorage();
+  } catch {
+    alert(mensagemErroApi());
+    registros = [];
+  }
+}
+
+async function migrarRegistrosDoLocalStorage() {
+  const antigos = JSON.parse(localStorage.getItem(storageKeys.registros)) || [];
+  if (antigos.length === 0 || registros.length > 0) return;
+
+  for (const registro of antigos) {
+    await fetch(API_REGISTROS(), {
+      method: 'POST',
+      headers: headersAutenticados({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        pessoa: registro.pessoa,
+        chave: registro.chave,
+        retirada: registro.retirada,
+        devolvido: registro.devolvido
+      })
+    });
+  }
+
+  localStorage.removeItem(storageKeys.registros);
+
+  const resposta = await fetch(API_REGISTROS());
+  if (resposta.ok) registros = await resposta.json();
+}
+
+async function criarRegistro(dados) {
+  if (!estaAutenticado()) {
+    throw new Error('Faça login para registrar retirada ou devolução.');
+  }
+
+  const resposta = await fetch(API_REGISTROS(), {
+    method: 'POST',
+    headers: headersAutenticados({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(dados)
+  });
+
+  const corpo = await resposta.json().catch(() => ({}));
+  if (resposta.status === 401) {
+    encerrarSessao();
+    throw new Error(corpo.erro || 'Sessão expirada. Faça login novamente.');
+  }
+  if (!resposta.ok) throw new Error(corpo.erro || 'Falha ao salvar registro');
+  return corpo;
+}
+
+async function atualizarRegistro(id, dados) {
+  if (!estaAutenticado()) {
+    throw new Error('Faça login para registrar devolução.');
+  }
+
+  const resposta = await fetch(`${API_REGISTROS()}/${id}`, {
+    method: 'PATCH',
+    headers: headersAutenticados({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(dados)
+  });
+
+  const corpo = await resposta.json().catch(() => ({}));
+  if (resposta.status === 401) {
+    encerrarSessao();
+    throw new Error(corpo.erro || 'Sessão expirada. Faça login novamente.');
+  }
+  if (!resposta.ok) throw new Error(corpo.erro || 'Falha ao atualizar registro');
+  return corpo;
 }
 
 // --- Funções de preenchimento dos selects ---
 
-// Preencher select de pessoas no index
-function preencherSelectPessoa() {
-  if (!selectPessoa) return;
-
-  selectPessoa.innerHTML = '<option value="">Selecione a pessoa</option>';
-
-  // Só mostrar pessoas com cargo válido
-  pessoas.forEach(p => {
-    const cargo = cargos.find(c => c.nome === p.cargo);
-    if (cargo) {
-      const option = document.createElement('option');
-      option.value = p.nome;
-      option.textContent = `${p.nome} (${p.cargo})`;
-      selectPessoa.appendChild(option);
-    }
-  });
-}
-
-// Preencher select de chaves disponíveis no index
+// Preencher select de crachás cadastrados (disponíveis para retirada)
 function preencherSelectChave() {
   if (!selectChave) return;
-
   selectChave.innerHTML = '<option value="">Selecione o crachá</option>';
 
-  // Filtrar chaves que não estão retiradas
   const chavesDisponiveis = chaves.filter(chaveObj =>
     !registros.some(r => r.chave === chaveObj.numero && !r.devolvido)
   );
 
+  if (chavesDisponiveis.length === 0) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = chaves.length === 0
+      ? 'Nenhum crachá cadastrado'
+      : 'Nenhum crachá disponível';
+    option.disabled = true;
+    selectChave.appendChild(option);
+    return;
+  }
+
   chavesDisponiveis.forEach(c => {
     const option = document.createElement('option');
     option.value = c.numero;
-    option.textContent = `${c.numero} (${c.local})`;
+    const local = c.local && c.local !== '-' ? ` (${c.local})` : '';
+    option.textContent = `${c.numero}${local}`;
     selectChave.appendChild(option);
   });
 }
@@ -108,14 +187,22 @@ function atualizarListaRetiradas() {
   btnDevolver.textContent = 'Devolver';
   btnDevolver.title = 'Registrar devolução da chave';
 
-  btnDevolver.addEventListener('click', () => {
-    // Marca como devolvido
-    r.devolvido = new Date().toISOString();
+  btnDevolver.addEventListener('click', async () => {
+    const devolvido = new Date().toISOString();
 
-    salvarDados(); // <- salva no localStorage
-    imprimirTicket('devolução', r); // <- imprime antes de atualizar interface
+    try {
+      await atualizarRegistro(r.id, { devolvido });
+      r.devolvido = devolvido;
+    } catch (erro) {
+      alert(erro.message || 'Erro ao registrar a devolução. Verifique se o servidor está rodando.');
+      if ((erro.message || '').includes('login')) {
+        window.location.href = 'login.html';
+      }
+      return;
+    }
 
-    // Atualiza interface após impressão
+    imprimirTicket('devolução', r);
+
     preencherSelectChave();
     atualizarListaRetiradas();
   });
@@ -257,16 +344,16 @@ formPessoa?.addEventListener('submit', e => {
 });
 
 // Cadastrar chave com setores autorizados (múltiplos)
-formChave?.addEventListener('submit', e => {
+formChave?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const numeroChave = inputNovaChave.value.trim();
-  const setoresSelecionados = Array.from(selectSetoresChave.selectedOptions).map(opt => opt.value);
+  const setoresSelecionados = Array.from(selectSetoresChave?.selectedOptions || []).map(opt => opt.value);
 
   if (!numeroChave) {
     alert('Digite a identificação da chave.');
     return;
   }
-  if (setoresSelecionados.length === 0) {
+  if (selectSetoresChave && setoresSelecionados.length === 0) {
     alert('Selecione ao menos um setor autorizado para esta chave.');
     return;
   }
@@ -275,77 +362,78 @@ formChave?.addEventListener('submit', e => {
     return;
   }
 
-  chaves.push({ numero: numeroChave, local: '-', setoresAutorizados: setoresSelecionados });
-  salvarDados();
+  try {
+    const novo = await cadastrarChave({
+      numero: numeroChave,
+      local: '-',
+      setoresAutorizados: setoresSelecionados
+    });
+    chaves.push(novo);
+  } catch (erro) {
+    alert(erro.message || 'Erro ao cadastrar crachá.');
+    return;
+  }
+
   inputNovaChave.value = '';
-  // Se tiver algum lugar para atualizar lista de chaves, atualizar aqui
 });
 
 // --- Validação na hora da retirada ---
 
-formRegistro?.addEventListener('submit', e => {
+formRegistro?.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  const pessoaNome = selectPessoa.value;
+  if (!estaAutenticado()) {
+    alert('Faça login para registrar retirada.');
+    window.location.href = 'login.html?redirect=index.html';
+    return;
+  }
+
+  await carregarChaves();
+
+  const pessoaNome = inputNomeRetirada?.value.trim() || '';
   const chaveNumero = selectChave.value;
 
   if (!pessoaNome || !chaveNumero) {
-    alert('Selecione pessoa e chave.');
+    alert('Selecione o crachá e informe o nome de quem retira.');
     return;
   }
 
-  // Busca objetos completos
-  const pessoaObj = pessoas.find(p => p.nome === pessoaNome);
   const chaveObj = chaves.find(c => c.numero === chaveNumero);
-  if (!pessoaObj || !chaveObj) {
-    alert('Pessoa ou chave inválida.');
+  if (!chaveObj) {
+    alert('Crachá inválido.');
     return;
   }
 
-  // Verifica se a chave já está retirada
   if (registros.some(r => r.chave === chaveNumero && !r.devolvido)) {
-    alert('Chave já está retirada.');
+    alert('Este crachá já está retirado.');
     return;
   }
 
-  // Busca cargo da pessoa
-  const cargoPessoa = cargos.find(c => c.nome === pessoaObj.cargo);
-  if (!cargoPessoa) {
-    alert('Cargo da pessoa não encontrado.');
+  try {
+    const novo = await criarRegistro({
+      pessoa: pessoaNome,
+      chave: chaveNumero,
+      retirada: new Date().toISOString(),
+      devolvido: null
+    });
+    registros.push(novo);
+  } catch (erro) {
+    alert(erro.message || 'Erro ao registrar a retirada. Verifique se o servidor está rodando.');
+    if ((erro.message || '').includes('login')) {
+      window.location.href = 'login.html';
+    }
     return;
   }
 
-  // Verifica autorização: se algum setor da chave está autorizado para o cargo da pessoa
-  const autorizada = chaveObj.setoresAutorizados.some(setorChave =>
-    cargoPessoa.setoresAutorizados.includes(setorChave)
-  );
-
-  if (!autorizada) {
-    alert('Pessoa não tem autorização para retirar essa chave.');
-    return;
-  }
-
-  // Adiciona registro
-  registros.push({
-    pessoa: pessoaNome,
-    chave: chaveNumero,
-    retirada: new Date().toISOString(),
-    devolvido: null
-  });
-
-  salvarDados();
   preencherSelectChave();
   atualizarListaRetiradas();
   imprimirTicket('retirada', registros[registros.length - 1]);
-  formRegistro.reset();
-
   formRegistro.reset();
 });
 
 // --- Inicialização ---
 
 function initIndex() {
-  preencherSelectPessoa();
   preencherSelectChave();
   atualizarListaRetiradas();
 }
@@ -533,12 +621,18 @@ function exportarXLSX() {
 }
 
 
-window.onload = () => {
+window.onload = async () => {
+  const precisaRegistros = formRegistro || document.getElementById('tabela-registros');
+  const precisaChaves = formRegistro || formChave || document.getElementById('tabela-registros');
+
+  if (precisaChaves) await carregarChaves();
+  if (precisaRegistros) await carregarRegistros();
+
   if (formRegistro) {
     initIndex();
   } else if (formSetor || formCargo || formPessoa || formChave) {
     initCadastro();
   } else if (document.getElementById('tabela-registros')) {
-    initRegistros(); // <- ESSA LINHA INICIALIZA A PÁGINA registros.html
+    initRegistros();
   }
 };

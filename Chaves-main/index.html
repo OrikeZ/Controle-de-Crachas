@@ -20,6 +20,8 @@
       <a href="index.html">Página Inicial</a>
       <a href="cadastro.html">Cadastros</a>
       <a href="registros.html">Registros</a>
+      <a href="login.html" id="link-login">Login</a>
+      <button type="button" id="logout" class="logout-btn" style="display:none">Sair</button>
       <a id="logoserra" href="index.html">
       <img src="/serra_morena sem fundo cópia.gif" alt="LOGO" link="index.html" class="logo">
       </a>
@@ -31,15 +33,13 @@
     <section class="registro">
       <h2>Registrar Retirada de Crachá</h2>
       <form id="form-registro">
-        <label for="pessoa">Pessoa:</label>
-        <select id="pessoa" required>
-          <option value="">Carregando...</option>
-        </select>
-
         <label for="chave">Crachá:</label>
         <select id="chave" required>
           <option value="">Carregando...</option>
         </select>
+
+        <label for="nome-retirada">Nome de quem retira:</label>
+        <input type="text" id="nome-retirada" name="nome-retirada" placeholder="Digite o nome completo" required />
 
         <button type="submit">Registrar Retirada</button>
       </form>
@@ -52,6 +52,22 @@
       </ul>
     </section>
   </main>
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="auth.js"></script>
   <script src="script.js"></script>
+  <script>
+    (function atualizarNavAuth() {
+      const linkLogin = document.getElementById('link-login');
+      const btnLogout = document.getElementById('logout');
+      if (estaAutenticado()) {
+        if (linkLogin) linkLogin.style.display = 'none';
+        if (btnLogout) btnLogout.style.display = '';
+        configurarBotaoLogout('logout');
+      } else if (linkLogin) {
+        linkLogin.textContent = 'Login (necessário para registrar)';
+      }
+    })();
+  </script>
 </body>
 </html>
