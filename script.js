@@ -502,7 +502,7 @@ function initCadastro() {
 
 function preencherTabelaRegistros() {
   const tabela = document.getElementById('tabela-registros').querySelector('tbody');
-  const filtroPessoa = document.getElementById('filtro-pessoa');
+  const filtroNome = document.getElementById('filtro-nome');
   const filtroTipo = document.getElementById('filtro-tipo');
   const filtroChave = document.getElementById('filtro-chave');
 
@@ -513,8 +513,11 @@ function preencherTabelaRegistros() {
   let registrosFiltrados = [...registros];
 
   // Aplica filtros
-  if (filtroPessoa && filtroPessoa.value) {
-    registrosFiltrados = registrosFiltrados.filter(r => r.pessoa === filtroPessoa.value);
+  if (filtroNome && filtroNome.value.trim()) {
+    const termo = normalizarTexto(filtroNome.value.trim());
+    registrosFiltrados = registrosFiltrados.filter((r) =>
+      normalizarTexto(r.pessoa).includes(termo)
+    );
   }
   if (filtroTipo && filtroTipo.value) {
     registrosFiltrados = registrosFiltrados.filter(
@@ -564,17 +567,9 @@ function preencherTabelaRegistros() {
   });
 }
 function initRegistros() {
-  const filtroPessoa = document.getElementById('filtro-pessoa');
+  const filtroNome = document.getElementById('filtro-nome');
   const filtroTipo = document.getElementById('filtro-tipo');
   const filtroChave = document.getElementById('filtro-chave');
-
-  // Preenche opções dos filtros
-  pessoas.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.nome;
-    opt.textContent = p.nome;
-    filtroPessoa?.appendChild(opt);
-  });
 
   chaves.forEach(c => {
     const opt = document.createElement('option');
@@ -583,8 +578,7 @@ function initRegistros() {
     filtroChave?.appendChild(opt);
   });
 
-  // Eventos para filtros
-  filtroPessoa?.addEventListener('change', preencherTabelaRegistros);
+  filtroNome?.addEventListener('input', preencherTabelaRegistros);
   filtroTipo?.addEventListener('change', preencherTabelaRegistros);
   filtroChave?.addEventListener('change', preencherTabelaRegistros);
 

@@ -448,16 +448,24 @@ ul#lista-retiradas li button {
   letter-spacing: 0.04em;
 }
 
-.filtros-registros select {
+.filtros-registros select,
+.filtros-registros input[type="text"] {
   padding: 10px 12px;
   border: 1.5px solid var(--cor-borda);
   border-radius: var(--raio-sm);
   font-size: 0.95rem;
   background: #fff;
   color: var(--cor-texto);
+  width: 100%;
 }
 
-.filtros-registros select:focus {
+.filtros-registros .campo-filtro--nome {
+  flex: 2 1 280px;
+  min-width: 220px;
+}
+
+.filtros-registros select:focus,
+.filtros-registros input[type="text"]:focus {
   border-color: var(--cor-primaria);
   outline: none;
   box-shadow: 0 0 0 3px rgba(193, 20, 17, 0.1);
